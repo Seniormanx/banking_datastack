@@ -1,0 +1,15 @@
+.env
+**/.env
+.venv
+.DS_Store
+docker/*/data/
+docker/*/logs/
+
+__pycache__/
+*.pyc
+
+docker/postgres/data/
+docker/clickhouse/data/
+docker/clickhouse/logs/
+docker/minio/data/
+docker/logs
