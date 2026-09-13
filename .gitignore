@@ -4,7 +4,7 @@
 .DS_Store
 docker/*/data/
 docker/*/logs/
-
+debezium-connector.json
 __pycache__/
 *.pyc
 

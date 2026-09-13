@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 # -----------------------------
 # Load secrets from .env
 # -----------------------------
-load_dotenv()
+load_dotenv(override=True)
 
 # Kafka consumer settings
 consumer = KafkaConsumer(
@@ -28,8 +28,8 @@ consumer = KafkaConsumer(
 s3 = boto3.client(
     's3',
     endpoint_url=os.getenv("MINIO_ENDPOINT"),
-    aws_access_key_id=os.getenv("MINIO_ACCESS_KEY"),
-    aws_secret_access_key=os.getenv("MINIO_SECRET_KEY")
+    aws_access_key_id=os.getenv("MINIO_ROOT_USER"),
+    aws_secret_access_key=os.getenv("MINIO_ROOT_PASSWORD")
 )
 
 bucket = os.getenv("MINIO_BUCKET")
@@ -42,23 +42,48 @@ if bucket not in [b['Name'] for b in s3.list_buckets()['Buckets']]:
 def write_to_minio(table_name, records):
     if not records:
         return
+
     df = pd.DataFrame([record["value"] for record in records])
+
     date_str = datetime.now().strftime('%Y-%m-%d')
     file_path = f'{table_name}_{date_str}.parquet'
-    df.to_parquet(file_path, engine='fastparquet', index=False)
-    s3_key = f'{table_name}/date={date_str}/{table_name}_{datetime.now().strftime("%H%M%S%f")}.parquet'
+
+    df.to_parquet(
+        file_path,
+        engine='fastparquet',
+        index=False
+    )
+
+    s3_key = (
+        f'{table_name}/date={date_str}/'
+        f'{table_name}_{datetime.now().strftime("%H%M%S%f")}.parquet'
+    )
+
     s3.upload_file(file_path, bucket, s3_key)
     os.remove(file_path)
-    print(f'Uploaded {len(records)} records to s3://{bucket}/{s3_key}')
-    return {
-        TopicPartition(record["topic"], record["partition"]): OffsetAndMetadata(
-            max(record["offset"] for record in records if record["topic"] == topic
-                and record["partition"] == partition) + 1,
-            None,
+
+    print(
+        f'Uploaded {len(records)} records '
+        f'to s3://{bucket}/{s3_key}'
+    )
+
+    offsets = {}
+
+    for record in records:
+        tp = TopicPartition(
+            record["topic"],
+            record["partition"]
         )
-        for topic in {record["topic"] for record in records}
-        for partition in {record["partition"] for record in records if record["topic"] == topic}
-    }
+
+        next_offset = record["offset"] + 1
+
+        if tp not in offsets or next_offset > offsets[tp].offset:
+            offsets[tp] = OffsetAndMetadata(
+                next_offset,
+                None
+            )
+
+    return offsets
 
 # Batch consume
 batch_size = 50

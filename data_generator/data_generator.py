@@ -5,7 +5,7 @@ import sys
 import time
 from decimal import Decimal, ROUND_DOWN
 
-import psycopg2
+import psycopg2  # pyright: ignore[reportMissingImports]
 from dotenv import load_dotenv
 from faker import Faker
 
