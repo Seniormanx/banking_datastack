@@ -2,6 +2,8 @@ import boto3
 from kafka import KafkaConsumer
 from kafka.structs import TopicPartition, OffsetAndMetadata
 import json
+import base64
+from decimal import Decimal
 import pandas as pd
 from datetime import datetime
 import os
@@ -11,6 +13,65 @@ from dotenv import load_dotenv
 # Load secrets from .env
 # -----------------------------
 load_dotenv(override=True)
+
+def decode_decimal_fields(event):
+    """
+    Decode Kafka Connect Decimal values that were serialized
+    as base64-encoded bytes.
+
+    Current Debezium records using decimal.handling.mode=double
+    are left unchanged.
+    """
+    schema = event.get("schema", {})
+    payload = event.get("payload", {})
+
+    schema_fields = schema.get("fields", [])
+
+    # Find the 'after' schema
+    after_schema = next(
+        (
+            field
+            for field in schema_fields
+            if field.get("field") == "after"
+        ),
+        None
+    )
+
+    if not after_schema:
+        return payload.get("after")
+
+    after_fields = after_schema.get("fields", [])
+    record = payload.get("after")
+
+    if not record:
+        return record
+
+    for field in after_fields:
+        field_name = field.get("field")
+        field_type = field.get("type")
+        logical_type = field.get("name")
+        parameters = field.get("parameters", {})
+
+        if (
+            field_name in record
+            and field_type == "bytes"
+            and logical_type == "org.apache.kafka.connect.data.Decimal"
+        ):
+            scale = int(parameters.get("scale", 0))
+
+            raw_bytes = base64.b64decode(record[field_name])
+
+            unscaled_value = int.from_bytes(
+                raw_bytes,
+                byteorder="big",
+                signed=True
+            )
+
+            record[field_name] = float(
+                Decimal(unscaled_value) / (Decimal(10) ** scale)
+            )
+
+    return record
 
 # Kafka consumer settings
 consumer = KafkaConsumer(
@@ -86,7 +147,7 @@ def write_to_minio(table_name, records):
     return offsets
 
 # Batch consume
-batch_size = 50
+batch_size =50
 buffer = {
     'banking_server.public.customers': [],
     'banking_server.public.accounts': [],
@@ -99,7 +160,7 @@ for message in consumer:
     topic = message.topic
     event = message.value
     payload = event.get("payload", {})
-    record = payload.get("after")  # Only take the actual row
+    record = decode_decimal_fields(event)  # Only take the actual row
 
     if record:
         buffer[topic].append(

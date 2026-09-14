@@ -1,11 +1,6 @@
-from datetime import datetime
-
-import boto3
+from datetime import datetime, timezone
 import io
 import os
-
-import pandas as pd
-import clickhouse_connect
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -24,6 +19,8 @@ CLICKHOUSE_DB = os.environ["CLICKHOUSE_DB"]
 
 
 def get_minio_client():
+    import boto3
+
     return boto3.client(
         "s3",
         endpoint_url=MINIO_ENDPOINT,
@@ -33,6 +30,8 @@ def get_minio_client():
 
 
 def get_clickhouse_client():
+    import clickhouse_connect
+
     return clickhouse_connect.get_client(
         host=CLICKHOUSE_HOST,
         port=CLICKHOUSE_PORT,
@@ -62,6 +61,8 @@ def get_loaded_objects(client):
 
 
 def load_customers(client, df):
+    import pandas as pd
+
     df["created_at"] = pd.to_datetime(
         df["created_at"],
         utc=True,
@@ -92,7 +93,10 @@ def load_customers(client, df):
 
 
 def load_accounts(client, df):
+    import pandas as pd
+
     df["balance"] = pd.to_numeric(df["balance"])
+
     df["created_at"] = pd.to_datetime(
         df["created_at"],
         utc=True,
@@ -125,7 +129,10 @@ def load_accounts(client, df):
 
 
 def load_transactions(client, df):
+    import pandas as pd
+
     df["amount"] = pd.to_numeric(df["amount"])
+
     df["created_at"] = pd.to_datetime(
         df["created_at"],
         utc=True,
@@ -134,6 +141,7 @@ def load_transactions(client, df):
     rows = []
 
     for row in df.itertuples(index=False):
+
         related_account_id = (
             None
             if pd.isna(row.related_account_id)
@@ -168,6 +176,8 @@ def load_transactions(client, df):
 
 
 def process_parquet_files():
+    import pandas as pd
+
     s3 = get_minio_client()
     ch = get_clickhouse_client()
 
@@ -181,7 +191,9 @@ def process_parquet_files():
     skipped = 0
 
     for page in paginator.paginate(Bucket=MINIO_BUCKET):
+
         for obj in page.get("Contents", []):
+
             key = obj["Key"]
 
             if not key.endswith(".parquet"):
@@ -219,7 +231,12 @@ def process_parquet_files():
 
             ch.insert(
                 "loaded_objects",
-                [(key, datetime.utcnow())],
+                [
+                    (
+                        key,
+                        datetime.now(timezone.utc),
+                    )
+                ],
                 column_names=[
                     "object_key",
                     "loaded_at",
