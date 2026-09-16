@@ -216,13 +216,15 @@ def process_parquet_files():
                 io.BytesIO(data)
             )
 
-            if key.startswith("customers/"):
+            table_name = key.split("/", 1)[0]
+
+            if table_name == "customers":
                 load_customers(ch, df)
 
-            elif key.startswith("accounts/"):
+            elif table_name == "accounts":
                 load_accounts(ch, df)
 
-            elif key.startswith("transactions/"):
+            elif table_name == "transactions":
                 load_transactions(ch, df)
 
             else:
@@ -252,7 +254,7 @@ def process_parquet_files():
 with DAG(
     dag_id="minio_to_clickhouse",
     start_date=datetime(2026, 9, 13),
-    schedule="@hourly",
+    schedule="*/5 * * * *",
     catchup=False,
     tags=["banking", "minio", "clickhouse"],
 ) as dag:

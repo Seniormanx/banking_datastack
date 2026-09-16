@@ -147,7 +147,7 @@ def write_to_minio(table_name, records):
     return offsets
 
 # Batch consume
-batch_size =50
+batch_size =20
 buffer = {
     'banking_server.public.customers': [],
     'banking_server.public.accounts': [],
