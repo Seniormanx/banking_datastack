@@ -1,0 +1,11 @@
+version: 2
+
+sources:
+  - name: banking
+    database: banking_db
+    schema: banking_db
+
+    tables:
+      - name: customers
+      - name: accounts
+      - name: transactions
