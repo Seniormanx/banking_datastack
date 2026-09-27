@@ -11,7 +11,9 @@ accounts as (
     select 
         account_id,
         customer_id,
-        account_type
+        account_type,
+        balance,
+        currency
     from {{ ref('stg_accounts') }}
 ),
 
@@ -36,6 +38,8 @@ select
     a.account_id as account_id,
     a.customer_id as account_customer_id,
     a.account_type as account_type,
+    a.balance as account_balance,
+    a.currency as account_currency,
 
     t.transaction_id as transaction_id,
     t.account_id as transaction_account_id,
