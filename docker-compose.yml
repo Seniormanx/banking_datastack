@@ -73,6 +73,7 @@ services:
       - "9001:9001"
     volumes:
       - ./docker/minio/data:/data
+
   clickhouse:
     image: clickhouse/clickhouse-server:latest
     container_name: clickhouse
@@ -86,6 +87,7 @@ services:
     volumes:
       - ./docker/clickhouse/data:/var/lib/clickhouse
       - ./docker/clickhouse/logs:/var/log/clickhouse-server
+
   airflow-webserver:
     platform: linux/amd64
     build:
@@ -153,7 +155,6 @@ services:
       - ./banking_dbt:/opt/airflow/banking_dbt
       - ./banking_dbt/.dbt:/home/airflow/.dbt
     command: scheduler
-
 
 
   airflow-postgres:
