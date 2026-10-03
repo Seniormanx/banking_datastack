@@ -83,12 +83,6 @@ source .venv/bin/activate   # Linux/macOS
 pip install -r requirements.txt
 ```
 
-If you use `uv`, you can also do:
-
-```bash
-uv sync
-```
-
 ## 4. Start the infrastructure services
 
 This project uses Docker Compose to run:
