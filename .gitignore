@@ -1,6 +1,7 @@
 .env
 **/.env
 .venv
+banking_stack/
 .DS_Store
 docker/*/data/
 docker/*/logs/
