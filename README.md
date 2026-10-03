@@ -73,15 +73,24 @@ A sample file is provided in `.env.example` if you want to copy from it.
 
 ## 3. Install Python dependencies
 
-From the project root:
+From the project root, create and activate the virtual environment:
+
+Windows PowerShell:
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Linux/macOS:
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate   # Linux/macOS
-# or .venv\Scripts\activate  # Windows PowerShell
-
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
+
+The `dbt-clickhouse` adapter is installed in this same environment. Airflow runs in Docker Compose, so any Airflow-only plugin dependencies must be installed in the Airflow image rather than this host virtual environment.
 
 ## 4. Start the infrastructure services
 
