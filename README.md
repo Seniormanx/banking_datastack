@@ -73,21 +73,26 @@ A sample file is provided in `.env.example` if you want to copy from it.
 
 ## 3. Install Python dependencies
 
-From the project root:
+Use `uv` to install the project and its dbt ClickHouse adapter into one virtual environment named `banking_stack`. `pyproject.toml` defines the dependencies and `uv.lock` pins them; do not install from a separate requirements file.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate   # Linux/macOS
-# or .venv\Scripts\activate  # Windows PowerShell
+From the project root, create and activate the environment:
 
-pip install -r requirements.txt
+Windows PowerShell:
+```powershell
+uv venv banking_stack --python 3.10
+.\banking_stack\Scripts\Activate.ps1
+uv sync --active
 ```
 
-If you use `uv`, you can also do:
+Linux/macOS:
 
 ```bash
-uv sync
+uv venv banking_stack --python 3.10
+source banking_stack/bin/activate
+uv sync --active
 ```
+
+The `dbt-clickhouse` adapter is installed in this same environment. Airflow runs in Docker Compose, so any Airflow-only plugin dependencies must be installed in the Airflow image rather than this host virtual environment.
 
 ## 4. Start the infrastructure services
 
