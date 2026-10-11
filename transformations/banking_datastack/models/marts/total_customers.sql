@@ -17,3 +17,4 @@ customer AS (
 SELECT *
 FROM customer
 
+\n

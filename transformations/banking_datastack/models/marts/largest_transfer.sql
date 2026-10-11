@@ -23,3 +23,4 @@ FROM largest_transfer
 ORDER BY total_transfers DESC
 limit 10
 
+\n

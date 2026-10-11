@@ -23,4 +23,4 @@ CREATE TABLE transactions(
     related_account_id INT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
     status VARCHAR(20) NOT NULL DEFAULT 'COMPLETED', 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
+);\n

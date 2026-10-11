@@ -9,3 +9,4 @@ select
     lowerUTF8(trim(email)) AS email,
     toDateTime(created_at) as created_at
 from {{ source('banking', 'customers') }}
+\n
