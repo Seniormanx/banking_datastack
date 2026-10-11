@@ -23,3 +23,4 @@ FROM largest_withdrawal
 ORDER BY total_withdrawal DESC
 limit 10
 
+\n

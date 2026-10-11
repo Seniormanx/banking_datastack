@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 import io
 import os
 
@@ -41,15 +41,62 @@ def get_clickhouse_client():
     )
 
 
-def ensure_control_table(client):
-    client.command("""
+def ensure_clickhouse_tables(client):
+    client.command(
+        """
+        CREATE TABLE IF NOT EXISTS customers (
+            id UInt32,
+            first_name String,
+            last_name String,
+            email String,
+            created_at DateTime64(6, 'UTC')
+        )
+        ENGINE = MergeTree()
+        ORDER BY id
+        """
+    )
+
+    client.command(
+        """
+        CREATE TABLE IF NOT EXISTS accounts (
+            id UInt32,
+            customer_id UInt32,
+            account_type String,
+            balance Decimal(18, 2),
+            currency String,
+            created_at DateTime64(6, 'UTC')
+        )
+        ENGINE = MergeTree()
+        ORDER BY id
+        """
+    )
+
+    client.command(
+        """
+        CREATE TABLE IF NOT EXISTS transactions (
+            id UInt64,
+            account_id UInt32,
+            txn_type String,
+            amount Decimal(18, 2),
+            related_account_id Nullable(UInt32),
+            status String,
+            created_at DateTime64(6, 'UTC')
+        )
+        ENGINE = MergeTree()
+        ORDER BY id
+        """
+    )
+
+    client.command(
+        """
         CREATE TABLE IF NOT EXISTS loaded_objects (
             object_key String,
             loaded_at DateTime64(6, 'UTC')
         )
         ENGINE = MergeTree()
         ORDER BY object_key
-    """)
+        """
+    )
 
 
 def get_loaded_objects(client):
@@ -96,7 +143,6 @@ def load_accounts(client, df):
     import pandas as pd
 
     df["balance"] = pd.to_numeric(df["balance"])
-
     df["created_at"] = pd.to_datetime(
         df["created_at"],
         utc=True,
@@ -132,7 +178,6 @@ def load_transactions(client, df):
     import pandas as pd
 
     df["amount"] = pd.to_numeric(df["amount"])
-
     df["created_at"] = pd.to_datetime(
         df["created_at"],
         utc=True,
@@ -141,7 +186,6 @@ def load_transactions(client, df):
     rows = []
 
     for row in df.itertuples(index=False):
-
         related_account_id = (
             None
             if pd.isna(row.related_account_id)
@@ -181,7 +225,7 @@ def process_parquet_files():
     s3 = get_minio_client()
     ch = get_clickhouse_client()
 
-    ensure_control_table(ch)
+    ensure_clickhouse_tables(ch)
 
     loaded_objects = get_loaded_objects(ch)
 
@@ -191,9 +235,7 @@ def process_parquet_files():
     skipped = 0
 
     for page in paginator.paginate(Bucket=MINIO_BUCKET):
-
         for obj in page.get("Contents", []):
-
             key = obj["Key"]
 
             if not key.endswith(".parquet"):
@@ -211,34 +253,23 @@ def process_parquet_files():
             )
 
             data = response["Body"].read()
-
-            df = pd.read_parquet(
-                io.BytesIO(data)
-            )
+            df = pd.read_parquet(io.BytesIO(data))
 
             table_name = key.split("/", 1)[0]
 
             if table_name == "customers":
                 load_customers(ch, df)
-
             elif table_name == "accounts":
                 load_accounts(ch, df)
-
             elif table_name == "transactions":
                 load_transactions(ch, df)
-
             else:
                 print(f"Skipping unknown object: {key}")
                 continue
 
             ch.insert(
                 "loaded_objects",
-                [
-                    (
-                        key,
-                        datetime.now(timezone.utc),
-                    )
-                ],
+                [(key, datetime.now(timezone.utc))],
                 column_names=[
                     "object_key",
                     "loaded_at",

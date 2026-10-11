@@ -52,4 +52,4 @@ from customers c
 left join accounts a 
     on c.customer_id = a.customer_id
 left join transactions t 
-    on a.account_id = t.account_id
+    on a.account_id = t.account_id\n

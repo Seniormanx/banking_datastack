@@ -126,3 +126,4 @@ except Exception:
 finally:
     cur.close()
     conn.close()
+\n

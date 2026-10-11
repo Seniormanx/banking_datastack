@@ -2,8 +2,8 @@ version: 2
 
 sources:
   - name: banking
-    database: banking_db
-    schema: banking_db
+    database: banking
+    schema: default
 
     tables:
       - name: customers

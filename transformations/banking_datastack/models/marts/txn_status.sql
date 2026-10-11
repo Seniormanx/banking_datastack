@@ -18,4 +18,4 @@ txn_status AS (
 )
 
 SELECT *
-FROM txn_status
+FROM txn_status\n

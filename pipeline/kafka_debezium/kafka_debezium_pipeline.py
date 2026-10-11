@@ -57,4 +57,4 @@ elif response.status_code == 409:
     print("⚠️ Connector already exists.")
 else:
     print(f"❌ Failed to create connector ({response.status_code}): {response.text}")
-    sys.exit(1)
+    sys.exit(1)\n
