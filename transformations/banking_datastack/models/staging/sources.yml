@@ -1,11 +1,34 @@
 version: 2
 
 sources:
-  - name: banking
-    database: banking
-    schema: default
+  - name: banking_db
+    database: banking_db
+    schema: banking_db
 
     tables:
       - name: customers
+        data_tests:
+          - not_null:
+              column_name: customer_id
+          - unique:
+              column_name: customer_id
       - name: accounts
+        data_tests:
+          - not_null:
+              column_name: account_id
+          - not_null:
+              column_name: customer_id
+          - unique:
+              column_name: account_id
+          - unique:
+              column_name: customer_id
       - name: transactions
+        data_tests:
+          - not_null:
+              column_name: transaction_id
+          - not_null:
+              column_name: account_id
+          - unique:
+              column_name: transaction_id
+          - unique:
+              column_name: account_id

@@ -18,4 +18,3 @@ account as (
 SELECT *
 FROM account
 
-\n

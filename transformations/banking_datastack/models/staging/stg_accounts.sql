@@ -2,11 +2,11 @@
             materialized = 'view'
 ) }}
 
-select
+select distinct
     toUInt64(id) as account_id,
     toUInt64(customer_id) as customer_id,
     lowerUTF8(trim(account_type)) as account_type,
     toDecimal64(balance, 2) as balance,
     trim(currency) as currency,
     toDateTime(created_at) as created_at
-from {{ source('banking', 'accounts') }}
+from {{ source('banking_db', 'accounts') }}

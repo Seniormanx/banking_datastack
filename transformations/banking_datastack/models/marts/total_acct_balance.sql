@@ -13,4 +13,4 @@ total_balance AS (
 )
 
 SELECT *
-FROM total_balance\n
+FROM total_balance

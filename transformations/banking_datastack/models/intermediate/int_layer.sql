@@ -1,5 +1,5 @@
 with customers as (
-    select 
+    select distinct 
         customer_id,
         first_name,
         last_name,
@@ -8,7 +8,7 @@ with customers as (
 ),
 
 accounts as (
-    select 
+    select distinct 
         account_id,
         customer_id,
         account_type,
@@ -18,7 +18,7 @@ accounts as (
 ),
 
 transactions as (
-    select 
+    select distinct
         transaction_id,
         account_id,
         txn_type,
@@ -52,4 +52,4 @@ from customers c
 left join accounts a 
     on c.customer_id = a.customer_id
 left join transactions t 
-    on a.account_id = t.account_id\n
+    on a.account_id = t.account_id

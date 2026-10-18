@@ -23,4 +23,3 @@ FROM largest_deposit
 ORDER BY total_deposits DESC
 limit 10
 
-\n
