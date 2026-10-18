@@ -18,4 +18,3 @@ txn_value AS (
 SELECT *
 FROM txn_value
 
-\n

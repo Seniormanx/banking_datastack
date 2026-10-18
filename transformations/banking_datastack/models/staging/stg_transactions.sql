@@ -2,7 +2,7 @@
             materialized = 'view'
 ) }}
 
-select 
+select distinct
 
     toUInt64(id) as transaction_id,
     toUInt64(account_id) as account_id,
@@ -13,4 +13,4 @@ select
     toDateTime(created_at) as created_at
 
 from
-{{ source('banking', 'transactions') }}\n
+{{ source('banking_db', 'transactions') }}

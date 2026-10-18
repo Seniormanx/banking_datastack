@@ -48,4 +48,3 @@ customer_summary AS (
 
 SELECT *
 FROM customer_summary
-\n
