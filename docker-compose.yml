@@ -75,7 +75,7 @@ services:
       - ./docker/minio/data:/data
 
   clickhouse:
-    image: clickhouse/clickhouse-server:latest
+    image: clickhouse/clickhouse-server:RELEASE.2025-10-15T17-29-55Z
     container_name: clickhouse
     ports:
       - "8123:8123"
@@ -176,4 +176,5 @@ volumes:
 networks:
   default:
     name: banking-mds-net
-  \n
+      
+         

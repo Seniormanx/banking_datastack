@@ -214,8 +214,8 @@ You can inspect the bucket in the MinIO console at:
 
 Default login:
 
-- Username: `minioadmin`
-- Password: `minioadmin`
+- Username: `user`
+- Password: `minioadmin123`
 
 ## 9. Fix transaction parquet values (if needed)
 
@@ -316,8 +316,8 @@ http://localhost:8080
 
 Default Airflow credentials are usually:
 
-- Username: `airflow`
-- Password: `airflow`
+- Username: `user`
+- Password: `airflow1234`
 
 If the database is not initialized yet, run:
 

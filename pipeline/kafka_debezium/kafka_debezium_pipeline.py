@@ -16,7 +16,7 @@ connector_config = {
     "name": "postgres-connector",
     "config": {
         "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
-        "database.hostname": os.getenv("POSTGRES_HOST"),
+        "database.hostname": os.getenv("DEBEZIUM_POSTGRES_HOST", "postgres"),
         "database.port": os.getenv("POSTGRES_PORT"),
         "database.user": os.getenv("POSTGRES_USER"),
         "database.password": os.getenv("POSTGRES_PASSWORD"),
@@ -57,4 +57,5 @@ elif response.status_code == 409:
     print("⚠️ Connector already exists.")
 else:
     print(f"❌ Failed to create connector ({response.status_code}): {response.text}")
-    sys.exit(1)\n
+    sys.exit(1)
+    
