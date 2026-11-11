@@ -48,6 +48,8 @@ services:
 
   postgres:
     image: postgres:15
+    container_name: postgres
+    restart: unless-stopped
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -56,38 +58,45 @@ services:
       - "5432:5432"
     volumes:
       - ./docker/postgres/data:/var/lib/postgresql/data
-    command: >
-      postgres -c wal_level=logical
-              -c max_wal_senders=10
-              -c max_replication_slots=10
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_replication_slots=10"
                
   minio:
-    image: minio/minio:latest
-    container_name: minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - ./docker/minio/data:/data
+      image: quay.io/minio/aistor/minio:RELEASE.2026-09-19T17-05-25Z
+      container_name: minio
+      command: server /data --console-address ":9001" --license /minio.license
+      environment:
+        MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+        MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      ports:
+        - "9000:9000"
+        - "9001:9001"
+      volumes:
+        - ./docker/minio/data:/data
+        - ./docker/minio/minio.license:/minio.license:ro
+        - ./docker/minio/certs:/etc/minio/certs
 
   clickhouse:
-    image: clickhouse/clickhouse-server:RELEASE.2025-10-15T17-29-55Z
-    container_name: clickhouse
-    ports:
-      - "8123:8123"
-      - "9002:9000"
-    environment:
-      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
-      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
-    volumes:
-      - ./docker/clickhouse/data:/var/lib/clickhouse
-      - ./docker/clickhouse/logs:/var/log/clickhouse-server
+      image: clickhouse/clickhouse-server:25.8-alpine
+      container_name: clickhouse
+      ports:
+        - "8123:8123"
+        - "9002:9000"
+      environment:
+        CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+        CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+        CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      volumes:
+        - ./docker/clickhouse/data:/var/lib/clickhouse
+        - ./docker/clickhouse/logs:/var/log/clickhouse-server
 
+  
   airflow-webserver:
     platform: linux/amd64
     build:
@@ -96,23 +105,24 @@ services:
     container_name: airflow-webserver
     restart: always
     depends_on:
-      - airflow-scheduler
-      - airflow-postgres
+      airflow-postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
     environment:
-      - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@airflow-postgres:5432/${AIRFLOW_DB_NAME}
-          # ClickHouse
-      - CLICKHOUSE_HOST=clickhouse
-      - CLICKHOUSE_PORT=8123
-      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
-      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
-      - CLICKHOUSE_DB=${CLICKHOUSE_DB}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@airflow-postgres:5432/${AIRFLOW_DB_NAME}
 
-      # MinIO
-      - MINIO_ENDPOINT=http://minio:9000
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-      - MINIO_BUCKET=${MINIO_BUCKET}
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: "8123"
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET}
     volumes:
       - ./docker/dags:/opt/airflow/dags
       - ./docker/logs:/opt/airflow/logs
@@ -123,6 +133,52 @@ services:
       - "8080:8080"
     command: webserver
 
+
+  airflow-init:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker-airflow.dockerfile
+    container_name: airflow-init
+    restart: "no"
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@airflow-postgres:5432/${AIRFLOW_DB_NAME}
+
+      AIRFLOW_ADMIN_USERNAME: ${AIRFLOW_ADMIN_USERNAME}
+      AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD}
+      AIRFLOW_ADMIN_EMAIL: ${AIRFLOW_ADMIN_EMAIL}
+      AIRFLOW_ADMIN_FIRSTNAME: ${AIRFLOW_ADMIN_FIRSTNAME}
+      AIRFLOW_ADMIN_LASTNAME: ${AIRFLOW_ADMIN_LASTNAME}
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        set -euo pipefail
+
+        echo "Checking Airflow metadata database..."
+        airflow db migrate
+
+        echo "Checking administrator account..."
+        if airflow users list | awk -F'|' -v user="$$AIRFLOW_ADMIN_USERNAME" 'NR > 2 { gsub(/^[[:space:]]+|[[:space:]]+$$/, "", $$2); if ($$2 == user) found=1 } END { exit !found }'; then
+          echo "Administrator already exists. Skipping creation."
+        else
+          echo "Creating Airflow administrator..."
+          airflow users create \
+            --username "$$AIRFLOW_ADMIN_USERNAME" \
+            --password "$$AIRFLOW_ADMIN_PASSWORD" \
+            --firstname "$$AIRFLOW_ADMIN_FIRSTNAME" \
+            --lastname "$$AIRFLOW_ADMIN_LASTNAME" \
+            --role Admin \
+            --email "$$AIRFLOW_ADMIN_EMAIL"
+        fi
+
+        echo "Airflow initialization completed successfully."
+
+
   airflow-scheduler:
     platform: linux/amd64
     build:
@@ -131,23 +187,24 @@ services:
     container_name: airflow-scheduler
     restart: always
     depends_on:
-    - airflow-postgres
-    - clickhouse
+      airflow-postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
     environment:
-      - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@airflow-postgres:5432/${AIRFLOW_DB_NAME}
-      # ClickHouse
-      - CLICKHOUSE_HOST=clickhouse
-      - CLICKHOUSE_PORT=8123
-      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
-      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
-      - CLICKHOUSE_DB=${CLICKHOUSE_DB}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@airflow-postgres:5432/${AIRFLOW_DB_NAME}
 
-      # MinIO
-      - MINIO_ENDPOINT=http://minio:9000
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-      - MINIO_BUCKET=${MINIO_BUCKET}
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: "8123"
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET}
     volumes:
       - ./docker/dags:/opt/airflow/dags
       - ./docker/logs:/opt/airflow/logs
@@ -156,7 +213,8 @@ services:
       - ./banking_dbt/.dbt:/home/airflow/.dbt
     command: scheduler
 
-
+  
+  
   airflow-postgres:
     image: postgres:15
     container_name: airflow-postgres
@@ -167,14 +225,18 @@ services:
       POSTGRES_DB: ${AIRFLOW_DB_NAME}
     volumes:
       - airflow_postgres_data:/var/lib/postgresql/data
-    # ports:
-    #   - "5433:5432"  # separate from banking-postgres to avoid conflict
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
 volumes:
   airflow_postgres_data:
   postgres_data:
+
 networks:
   default:
     name: banking-mds-net
-      
-         

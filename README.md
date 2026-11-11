@@ -107,6 +107,8 @@ This project uses Docker Compose to run:
 
 Start everything with:
 
+docker compose build -it
+
 ```bash
 docker compose up -d
 ```
