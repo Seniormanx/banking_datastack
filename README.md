@@ -5,6 +5,8 @@ This project builds a small end-to-end banking data platform using PostgreSQL, K
 The full data flow looks like this:
 
 PostgreSQL -> Debezium -> Kafka -> Kafka consumer -> MinIO -> Airflow DAG -> ClickHouse -> dbt models
+<img width="1536" height="1024" alt="End-to-End Banking Data Stack Architecture" src="https://github.com/user-attachments/assets/bd968a43-4eed-4617-9023-480f47f2f6ee" />
+
 
 ## Project structure
 
