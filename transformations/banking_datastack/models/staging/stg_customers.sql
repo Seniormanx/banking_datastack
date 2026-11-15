@@ -8,3 +8,4 @@ select distinct
     toDateTime(created_at) as created_at
 
 from {{ source('banking_db', 'customers') }}
+

@@ -175,4 +175,5 @@ for message in consumer:
     if len(buffer[topic]) >= batch_size:
         offsets = write_to_minio(topic.split('.')[-1], buffer[topic])
         consumer.commit(offsets=offsets)
-        buffer[topic] = []\n
+        buffer[topic] = []
+        
