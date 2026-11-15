@@ -93,7 +93,7 @@ services:
         CLICKHOUSE_USER: ${CLICKHOUSE_USER}
         CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
       volumes:
-        - ./docker/clickhouse/data:/var/lib/clickhouse
+        - clickhouse_data:/var/lib/clickhouse
         - ./docker/clickhouse/logs:/var/log/clickhouse-server
 
   
@@ -236,6 +236,7 @@ services:
 volumes:
   airflow_postgres_data:
   postgres_data:
+  clickhouse_data:
 
 networks:
   default:
