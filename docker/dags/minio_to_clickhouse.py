@@ -501,3 +501,4 @@ with DAG(
         python_callable=process_parquet_files,
         execution_timeout=timedelta(minutes=30),
     )
+    
