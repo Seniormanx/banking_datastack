@@ -14,3 +14,4 @@ select distinct
 
 from
 {{ source('banking_db', 'transactions') }}
+

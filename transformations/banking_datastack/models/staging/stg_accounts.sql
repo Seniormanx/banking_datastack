@@ -10,3 +10,4 @@ select distinct
     trim(currency) as currency,
     toDateTime(created_at) as created_at
 from {{ source('banking_db', 'accounts') }}
+

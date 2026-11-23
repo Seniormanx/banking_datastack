@@ -81,7 +81,7 @@ banking_datastack/
 
 ## Prerequisites
 
-Before starting, make sure you have:
+Before setting up the project, ensure you have:
 
 - Docker Desktop or Docker Engine installed and running
 - Docker Compose v2
@@ -89,16 +89,19 @@ Before starting, make sure you have:
 - pip or uv
 - Git
 
-Optional but helpful:
+Recommended tools:
 
-- PostgreSQL client tools (`psql`)
+- Visual Studio Code
+- PostgreSQL client (`psql`)
 - dbt CLI
-- MinIO client or browser access
+- MinIO Console or AWS CLI
+
+## Getting Started
 
 ## 1. Clone the Repository
 
 ```bash
-git clone <your-repo-url>
+git clone <YOUR_REPOSITORY_URL>
 cd banking_datastack
 ```
 
@@ -108,15 +111,27 @@ Create a `.env` file in the project root.
 
 You can use `.env.example` as a starting point.
 
-Example:
+```bash
+cp .env.example .env
+```
+
+For Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Example configuration:
 
 ```env
+# PostgreSQL Source Database
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 POSTGRES_DB=banking_db
 POSTGRES_USER=banking_user
 POSTGRES_PASSWORD=your_password
 
+# Airflow Metadata Database
 AIRFLOW_DB_USER=airflow
 AIRFLOW_DB_PASSWORD=your_airflow_password
 AIRFLOW_DB_NAME=airflow
@@ -129,6 +144,7 @@ CLICKHOUSE_DB=banking_db
 CLICKHOUSE_USER=default
 CLICKHOUSE_PASSWORD=your_clickhouse_password
 
+# Kafka
 KAFKA_BOOTSTRAP=localhost:29092
 KAFKA_GROUP=banking-group
 
@@ -226,16 +242,18 @@ The schema creates three main tables:
 
 The data generator inserts synthetic banking records into PostgreSQL.
 
-Run it once:
+Run the connector configuration script:
 
 ```bash
-python pipeline/data_generator/data_generator.py --once
+python pipeline/kafka_debezium/kafka_debezium_pipeline.py
 ```
 
-Run it continuously:
+The connector is configured to capture changes from:
 
-```bash
-python pipeline/data_generator/data_generator.py
+```text
+public.customers
+public.accounts
+public.transactions
 ```
 
 The generator produces customer records, account information, and banking transactions.
@@ -244,29 +262,33 @@ The generator produces customer records, account information, and banking transa
 
 Debezium captures changes from PostgreSQL and publishes them to Kafka topics.
 
-Run:
+Check the connector status:
 
 ```bash
-python pipeline/kafka_debezium/kafka_debezium_pipeline.py
+curl http://localhost:8083/connectors/<connector-name>/status
 ```
 
 The connector captures changes from:
 
-- `public.customers`
-- `public.accounts`
-- `public.transactions`
+### 7. Generate Synthetic Banking Data
 
 Check the registered connectors:
 
 ```bash
-curl http://localhost:8083/connectors
+python pipeline/data_generator/data_generator.py --once
 ```
 
 ## 8. Stream Kafka Events into MinIO
 
 The Kafka consumer reads messages from Kafka and writes them as Parquet files into MinIO.
 
-Run:
+The generated data provides a continuous stream of database changes for Debezium to capture.
+
+### 8. Stream Kafka Events into MinIO
+
+The Kafka consumer reads events from the banking Kafka topics and stores them as Parquet files in MinIO.
+
+Start the consumer:
 
 ```bash
 python pipeline/consumer/kafka_to_minio_pipeline.py
@@ -277,9 +299,19 @@ The script creates the `banking-data` bucket if it does not already exist.
 Objects are stored using date-partitioned paths:
 
 ```text
-customers/date=YYYY-MM-DD/customers_123456.parquet
-accounts/date=YYYY-MM-DD/accounts_123456.parquet
-transactions/date=YYYY-MM-DD/transactions_123456.parquet
+banking-data/
+│
+├── customers/
+│   └── date=YYYY-MM-DD/
+│       └── customers_<timestamp>.parquet
+│
+├── accounts/
+│   └── date=YYYY-MM-DD/
+│       └── accounts_<timestamp>.parquet
+│
+└── transactions/
+    └── date=YYYY-MM-DD/
+        └── transactions_<timestamp>.parquet
 ```
 
 Access the MinIO console:
@@ -294,10 +326,10 @@ Sign in using the MinIO credentials configured in your `.env` file.
 
 The `repair_transactions.py` script repairs transaction amount values in Parquet files when they have been encoded as base64/decimal values.
 
-Run:
+The DAG is located at:
 
-```bash
-python repair_transactions.py
+```text
+docker/dags/minio_to_clickhouse.py
 ```
 
 This step is only necessary when the stored transaction values require repair before ingestion.
@@ -565,10 +597,28 @@ psql postgresql://banking_user:your_password@localhost:5432/banking_db -c "SELEC
 Check MinIO:
 
 ```bash
-aws --endpoint-url http://localhost:9000 s3 ls s3://banking-data --recursive
+docker compose exec clickhouse clickhouse-client
 ```
 
-Check ClickHouse:
+Inspect the database:
+
+```sql
+SHOW TABLES FROM banking_db;
+```
+
+Check the loaded records:
+
+```sql
+SELECT COUNT(*) FROM banking_db.customers;
+
+SELECT COUNT(*) FROM banking_db.accounts;
+
+SELECT COUNT(*) FROM banking_db.transactions;
+```
+
+### dbt
+
+Run:
 
 ```bash
 curl "http://localhost:8123/?database=banking_db" -d "SHOW TABLES"
@@ -616,7 +666,7 @@ docker compose logs -f
 - Check Kafka Connect logs:
 
 ```bash
-docker compose logs connect
+docker compose logs -f connect
 ```
 
 ### MinIO Files Not Appearing
@@ -631,7 +681,7 @@ docker compose logs connect
 - Check scheduler logs:
 
 ```bash
-docker compose logs airflow-scheduler
+docker compose exec airflow-scheduler airflow dags list-import-errors
 ```
 
 ### dbt Connection Issues
@@ -694,6 +744,7 @@ docker compose ps
 
 # View logs
 docker compose logs -f
+```
 
 # Start Metabase
 docker compose up -d metabase
