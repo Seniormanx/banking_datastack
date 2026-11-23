@@ -1,80 +1,28 @@
 # Banking Data Stack
 
-**An End-to-End Banking Data Engineering Platform | PostgreSQL • Kafka • Debezium • MinIO • Airflow • ClickHouse • dbt**
+An end-to-end banking data engineering and analytics platform built with PostgreSQL, Debezium, Kafka, MinIO, Apache Airflow, ClickHouse, dbt, and Metabase.
 
-## Overview
+This project demonstrates how synthetic banking data can be generated, captured through Change Data Capture (CDC), streamed through Kafka, stored as Parquet files in MinIO, loaded into ClickHouse, transformed with dbt, and visualized through interactive Metabase dashboards.
 
-The Banking Data Stack is an end-to-end data engineering project that demonstrates how to build a modern banking data platform using open-source technologies.
+## Project Architecture
 
-The platform generates synthetic banking data, captures database changes in near real time, streams events through Apache Kafka, stores data in an S3-compatible object storage system, and orchestrates ingestion into ClickHouse for analytical processing. Finally, dbt transforms the raw data into structured analytical models.
+The platform follows this data flow:
 
-The project demonstrates key data engineering concepts, including Change Data Capture (CDC), event streaming, object storage, workflow orchestration, analytical data warehousing, and SQL-based data transformation.
+**PostgreSQL → Debezium → Kafka → Kafka Consumer → MinIO → Airflow → ClickHouse → dbt → Metabase**
 
-## Architecture
+![End-to-End Banking Data Stack Architecture](https://github.com/user-attachments/assets/bd968a43-4eed-4617-9023-480f47f2f6ee)
 
-The platform follows an event-driven data pipeline:
+### Architecture Overview
 
-```text
-                 PostgreSQL
-              (Banking Database)
-                      |
-                      v
-                  Debezium
-               (Change Data Capture)
-                      |
-                      v
-                   Kafka
-                (Event Streaming)
-                      |
-                      v
-                Kafka Consumer
-                      |
-                      v
-                   MinIO
-              (Parquet Storage)
-                      |
-                      v
-                Apache Airflow
-             (Pipeline Orchestration)
-                      |
-                      v
-                 ClickHouse
-              (Analytical Storage)
-                      |
-                      v
-                    dbt
-             (Data Transformation)
-                      |
-                      v
-             Analytical Data Models
-```
-
-### Data Flow
-
-1. **Data Generation:** Synthetic banking records are generated and inserted into PostgreSQL.
-2. **Change Data Capture:** Debezium captures inserts and updates from PostgreSQL.
-3. **Event Streaming:** Captured changes are published to Kafka topics.
-4. **Object Storage:** A Kafka consumer reads events and writes them to MinIO in Parquet format.
-5. **Data Ingestion:** Apache Airflow discovers and processes Parquet objects from MinIO.
-6. **Analytical Storage:** The extracted data is loaded into ClickHouse.
-7. **Data Transformation:** dbt transforms raw banking data into analytical models for reporting and analysis.
-
-## Technology Stack
-
-| Technology | Role |
-|---|---|
-| PostgreSQL | Source relational database |
-| Python | Data generation, ingestion, and processing |
-| Apache Kafka | Distributed event streaming |
-| Debezium | PostgreSQL Change Data Capture |
-| MinIO | S3-compatible object storage |
-| Apache Airflow | Workflow orchestration and scheduling |
-| Parquet | Columnar data storage format |
-| ClickHouse | Analytical database |
-| dbt | SQL-based data transformation |
-| Docker | Containerization |
-| Docker Compose | Infrastructure orchestration |
-| Git & GitHub | Version control |
+1. **PostgreSQL:** Stores the source banking data, including customers, accounts, and transactions.
+2. **Debezium:** Captures database changes using Change Data Capture (CDC).
+3. **Kafka:** Receives and distributes the change events.
+4. **Kafka Consumer:** Reads Kafka messages and writes the data into Parquet files.
+5. **MinIO:** Provides S3-compatible object storage for the Parquet files.
+6. **Apache Airflow:** Orchestrates the ingestion of Parquet files from MinIO into ClickHouse.
+7. **ClickHouse:** Stores the ingested banking data and analytical tables.
+8. **dbt:** Performs data cleaning, transformation, and analytical modelling.
+9. **Metabase:** Connects to ClickHouse and provides interactive dashboards for banking analytics.
 
 ## Project Structure
 
@@ -98,35 +46,46 @@ banking_datastack/
 ├── docker/
 │   ├── dags/
 │   │   └── minio_to_clickhouse.py
-│   │
-│   └── clickhouse/
-│       ├── create_database.sql
-│       └── init_clickhouse.py
+│   ├── clickhouse/
+│   ├── minio/
+│   ├── postgres/
+│   └── ...
 │
 ├── transformations/
 │   └── banking_datastack/
-│       ├── models/
-│       ├── dbt_project.yml
-│       └── ...
+│       └── dbt models and configuration
+│
+├── screenshots/
+│   └── banking_datastack_metabase_dashboard_page_1.png
 │
 ├── repair_transactions.py
 ├── docker-compose.yml
 ├── docker-airflow.dockerfile
 ├── requirements.txt
 ├── .env.example
-├── .gitignore
 └── README.md
 ```
 
-*The structure above highlights the main components; additional configuration and supporting files may exist in the repository.*
+### Main Components
+
+| Component | Purpose |
+|---|---|
+| PostgreSQL | Source banking database |
+| Debezium | Change Data Capture |
+| Kafka | Event streaming |
+| MinIO | Parquet object storage |
+| Airflow | Data pipeline orchestration |
+| ClickHouse | Analytical database |
+| dbt | Data transformation |
+| Metabase | Business intelligence and dashboards |
 
 ## Prerequisites
 
 Before setting up the project, ensure you have:
 
-- Docker Desktop or Docker Engine
-- Docker Compose V2
-- Python 3.10 or later
+- Docker Desktop or Docker Engine installed and running
+- Docker Compose v2
+- Python 3.10+
 - pip or uv
 - Git
 
@@ -139,16 +98,18 @@ Recommended tools:
 
 ## Getting Started
 
-### 1. Clone the Repository
+## 1. Clone the Repository
 
 ```bash
 git clone <YOUR_REPOSITORY_URL>
 cd banking_datastack
 ```
 
-### 2. Configure Environment Variables
+## 2. Configure Environment Variables
 
-Create a `.env` file in the project root. A sample configuration is provided in `.env.example`, where available.
+Create a `.env` file in the project root.
+
+You can use `.env.example` as a starting point.
 
 ```bash
 cp .env.example .env
@@ -168,37 +129,37 @@ POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 POSTGRES_DB=banking_db
 POSTGRES_USER=banking_user
-POSTGRES_PASSWORD=<your_password>
+POSTGRES_PASSWORD=your_password
 
 # Airflow Metadata Database
 AIRFLOW_DB_USER=airflow
-AIRFLOW_DB_PASSWORD=<your_password>
+AIRFLOW_DB_PASSWORD=your_airflow_password
 AIRFLOW_DB_NAME=airflow
 
-# MinIO
-MINIO_ROOT_USER=<your_minio_username>
-MINIO_ROOT_PASSWORD=<your_minio_password>
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=your_minio_password
 MINIO_BUCKET=banking-data
 
-# ClickHouse
 CLICKHOUSE_DB=banking_db
 CLICKHOUSE_USER=default
-CLICKHOUSE_PASSWORD=<your_password>
+CLICKHOUSE_PASSWORD=your_clickhouse_password
 
 # Kafka
 KAFKA_BOOTSTRAP=localhost:29092
 KAFKA_GROUP=banking-group
+
+MB_SESSION_SECRET_KEY=your_random_session_secret
 ```
 
-Ensure that the variable names and values match the configuration expected by your Docker Compose file and Python scripts.
+Use the same values consistently across your Docker Compose configuration and application scripts.
 
-**Security:** Never commit `.env` or files containing credentials to GitHub. Use strong passwords and keep `.env.example` free of real secrets.
+Do not commit your actual `.env` file or production credentials to GitHub.
 
-### 3. Install Python Dependencies
+## 3. Install Python Dependencies
 
-Create a virtual environment from the project root.
+From the project root, create and activate a virtual environment.
 
-**Windows PowerShell**
+### Windows PowerShell
 
 ```powershell
 python -m venv .venv
@@ -206,7 +167,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-**Linux/macOS**
+### Linux/macOS
 
 ```bash
 python -m venv .venv
@@ -214,93 +175,72 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-The dbt ClickHouse adapter should also be available in the local Python environment.
+The `dbt-clickhouse` adapter is installed in this environment. Airflow runs in Docker Compose, so Airflow-specific dependencies must be installed in the Airflow image.
 
-Airflow dependencies must be installed in the Airflow Docker image when they are required by DAGs.
+## 4. Start the Infrastructure Services
 
-### 4. Build and Start the Infrastructure
-
-The project uses Docker Compose to manage the infrastructure services, including:
+Docker Compose runs the following services:
 
 - PostgreSQL
-- Kafka and Zookeeper
+- Zookeeper
+- Kafka
 - Debezium Kafka Connect
 - MinIO
 - ClickHouse
-- Airflow metadata PostgreSQL
+- Airflow PostgreSQL
 - Airflow Webserver
 - Airflow Scheduler
+- Metabase
 
-Build the images:
-
-```bash
-docker compose build
-```
-
-Start the services:
+Start the infrastructure:
 
 ```bash
 docker compose up -d
 ```
 
-Check their status:
+Check service status:
 
 ```bash
 docker compose ps
 ```
 
-View service logs:
+### Service Ports
 
-```bash
-docker compose logs -f
-```
+| Service | Port | Access |
+|---|---:|---|
+| PostgreSQL | 5432 | `localhost:5432` |
+| Kafka | 29092 | `localhost:29092` |
+| Kafka Connect | 8083 | `localhost:8083` |
+| MinIO API | 9000 | `localhost:9000` |
+| MinIO Console | 9001 | `http://localhost:9001` |
+| ClickHouse HTTP | 8123 | `localhost:8123` |
+| ClickHouse Native | 9002 | `localhost:9002` |
+| Airflow | 8080 | `http://localhost:8080` |
+| Metabase | 3000 | `http://localhost:3000` |
 
-### Service Endpoints
+## 5. Initialize the PostgreSQL Database
 
-| Service | Local Address |
-|---|---|
-| PostgreSQL | `localhost:5432` |
-| Kafka Broker | `localhost:29092` |
-| Kafka Connect | `http://localhost:8083` |
-| MinIO API | `http://localhost:9000` |
-| MinIO Console | `http://localhost:9001` |
-| ClickHouse HTTP | `http://localhost:8123` |
-| ClickHouse Native | `localhost:9002` |
-| Airflow Webserver | `http://localhost:8080` |
-
-These endpoints assume the ports are published as configured in `docker-compose.yml`.
-
-### 5. Initialize PostgreSQL
-
-The banking database schema is defined in:
+The source database schema is located at:
 
 ```text
 data_source/postgres/schema.sql
 ```
 
-Apply the schema using the PostgreSQL container:
+Apply the schema to PostgreSQL:
 
 ```bash
-docker compose exec postgres psql -U banking_user -d banking_db -f /docker-entrypoint-initdb.d/schema.sql
+psql postgresql://banking_user:your_password@localhost:5432/banking_db -f data_source/postgres/schema.sql
 ```
 
-Alternatively, if PostgreSQL is accessible from your host:
-
-```bash
-psql postgresql://banking_user:<your_password>@localhost:5432/banking_db -f data_source/postgres/schema.sql
-```
-
-The schema defines three primary banking entities:
+The schema creates three main tables:
 
 - `customers`
 - `accounts`
 - `transactions`
 
-The relationships between these tables represent customers, their accounts, and associated financial transactions.
+## 6. Generate Synthetic Banking Data
 
-### 6. Register the Debezium Connector
-
-Debezium captures database changes from PostgreSQL and publishes them to Kafka.
+The data generator inserts synthetic banking records into PostgreSQL.
 
 Run the connector configuration script:
 
@@ -316,11 +256,11 @@ public.accounts
 public.transactions
 ```
 
-Check the registered connectors:
+The generator produces customer records, account information, and banking transactions.
 
-```bash
-curl http://localhost:8083/connectors
-```
+## 7. Register the Debezium Connector
+
+Debezium captures changes from PostgreSQL and publishes them to Kafka topics.
 
 Check the connector status:
 
@@ -328,23 +268,19 @@ Check the connector status:
 curl http://localhost:8083/connectors/<connector-name>/status
 ```
 
-Ensure the connector is running before generating data that you want captured.
+The connector captures changes from:
 
 ### 7. Generate Synthetic Banking Data
 
-The data generator creates synthetic customer, account, and transaction records in PostgreSQL.
-
-Run a single generation cycle:
+Check the registered connectors:
 
 ```bash
 python pipeline/data_generator/data_generator.py --once
 ```
 
-Run continuously:
+## 8. Stream Kafka Events into MinIO
 
-```bash
-python pipeline/data_generator/data_generator.py
-```
+The Kafka consumer reads messages from Kafka and writes them as Parquet files into MinIO.
 
 The generated data provides a continuous stream of database changes for Debezium to capture.
 
@@ -358,9 +294,9 @@ Start the consumer:
 python pipeline/consumer/kafka_to_minio_pipeline.py
 ```
 
-The script creates the `banking-data` bucket if it does not already exist and writes objects using an entity-based partition structure.
+The script creates the `banking-data` bucket if it does not already exist.
 
-Example:
+Objects are stored using date-partitioned paths:
 
 ```text
 banking-data/
@@ -378,17 +314,17 @@ banking-data/
         └── transactions_<timestamp>.parquet
 ```
 
-Inspect the stored files through the MinIO Console:
+Access the MinIO console:
 
 ```text
 http://localhost:9001
 ```
 
-Use the credentials configured in your `.env` file.
+Sign in using the MinIO credentials configured in your `.env` file.
 
-### 9. Load Data into ClickHouse with Airflow
+## 9. Repair Transaction Parquet Values (If Required)
 
-Apache Airflow orchestrates the ingestion of Parquet files from MinIO into ClickHouse.
+The `repair_transactions.py` script repairs transaction amount values in Parquet files when they have been encoded as base64/decimal values.
 
 The DAG is located at:
 
@@ -396,55 +332,46 @@ The DAG is located at:
 docker/dags/minio_to_clickhouse.py
 ```
 
+This step is only necessary when the stored transaction values require repair before ingestion.
+
+## 10. Load Data into ClickHouse with Airflow
+
+The Airflow DAG is located at:
+
+```text
+docker/dags/minio_to_clickhouse.py
+```
+
+It reads Parquet files from MinIO and loads them into ClickHouse.
+
 Access the Airflow interface:
 
 ```text
 http://localhost:8080
 ```
 
-If the Airflow metadata database requires migration, run:
-
-```bash
-docker compose exec airflow-webserver airflow db migrate
-```
-
-Locate the DAG:
+The DAG is named:
 
 ```text
 minio_to_clickhouse
 ```
 
-Enable the DAG or trigger a manual run.
+Trigger the DAG from the Airflow interface to load the data.
 
-The DAG performs the following operations:
+The ingestion pipeline populates the following ClickHouse tables:
 
-1. Connects to MinIO.
-2. Discovers available Parquet objects.
-3. Downloads and reads the files.
-4. Processes the records and handles relevant data types.
-5. Inserts the records into ClickHouse.
-6. Tracks processed objects using the `loaded_objects` table.
+- `customers`
+- `accounts`
+- `transactions`
 
-The target ClickHouse database is:
+Airflow orchestrates this ingestion process and provides visibility into task execution and pipeline status.
 
-```text
-banking_db
-```
-
-The primary raw tables are:
-
-```text
-customers
-accounts
-transactions
-```
-
-### 10. Transform Data with dbt
+## 11. Transform Data with dbt
 
 The dbt project is located at:
 
 ```text
-transformations/banking_datastack/
+transformations/banking_datastack
 ```
 
 Navigate to the project directory:
@@ -459,73 +386,215 @@ Install dbt dependencies:
 dbt deps
 ```
 
-Validate the project:
-
-```bash
-dbt debug
-```
-
-Run the transformation models:
+Run transformations:
 
 ```bash
 dbt run
 ```
 
-Execute data quality tests:
+Run data quality tests:
 
 ```bash
 dbt test
 ```
 
-The dbt profile should be named:
+The dbt profile must be configured to connect to ClickHouse using the `dbt-clickhouse` adapter.
+
+The project expects a profile named:
 
 ```text
 banking_datastack
 ```
 
-Ensure `profiles.yml` is configured with the ClickHouse connection details and points to the correct database.
+### Medallion Architecture
 
-The resulting dbt models provide a structured analytical layer on top of the raw banking data.
+The transformation layer can be organized into three logical layers:
 
-## Data Validation
+| Layer | Purpose |
+|---|---|
+| Bronze | Raw ingested banking data |
+| Silver | Cleaned, validated, and standardized data |
+| Gold | Business-ready analytical models |
 
-After running the pipeline, validate that records are moving through each component.
+This layered approach separates raw ingestion from data preparation and business reporting.
 
-### PostgreSQL
+The Gold layer is the recommended source for Metabase dashboards because it provides data models designed for analytical queries.
 
-Check the source transaction count:
+## 12. Connect Metabase to ClickHouse
 
-```sql
-SELECT COUNT(*) FROM transactions;
-```
+Metabase is used as the business intelligence and visualization layer of the platform.
 
-Or run:
+It connects directly to ClickHouse to explore the transformed banking data and build interactive dashboards.
 
-```bash
-psql postgresql://banking_user:<your_password>@localhost:5432/banking_db -c "SELECT COUNT(*) FROM transactions;"
-```
+### Start Metabase
 
-### Kafka
+Metabase is included in the Docker Compose configuration.
 
-List Kafka topics from the broker container:
-
-```bash
-docker compose exec kafka kafka-topics --bootstrap-server localhost:9092 --list
-```
-
-Check that the expected banking topics are receiving messages using the Kafka console consumer or your preferred Kafka monitoring tool.
-
-### MinIO
-
-List stored Parquet objects:
+Start it independently if the other services are already running:
 
 ```bash
-aws --endpoint-url http://localhost:9000 s3 ls s3://banking-data --recursive
+docker compose up -d metabase
 ```
 
-### ClickHouse
+Check its status:
 
-Connect to ClickHouse:
+```bash
+docker compose ps
+```
+
+Open the Metabase web interface:
+
+```text
+http://localhost:3000
+```
+
+Complete the initial setup and create your Metabase administrator account.
+
+### Metabase Application Storage
+
+Metabase uses an embedded H2 application database for this development setup.
+
+The application database is persisted through a Docker named volume:
+
+```yaml
+volumes:
+  - metabase_data:/metabase-data
+```
+
+This stores Metabase application information, including users, dashboards, and saved questions.
+
+The volume is separate from the ClickHouse database, which stores the actual banking data.
+
+### Add ClickHouse as a Database
+
+Inside Metabase:
+
+1. Open **Admin settings**.
+2. Navigate to **Databases**.
+3. Click **Add a database**.
+4. Select **ClickHouse**.
+5. Enter the connection details.
+
+Use the following configuration:
+
+| Setting | Value |
+|---|---|
+| Database type | ClickHouse |
+| Display name | Banking ClickHouse |
+| Host | `clickhouse` |
+| Port | `8123` |
+| Database name | Your configured `CLICKHOUSE_DB` |
+| Username | Your ClickHouse username |
+| Password | Your ClickHouse password |
+| SSL | Disabled for this local setup |
+
+**Important:** Use `clickhouse` as the hostname because Metabase and ClickHouse communicate over the Docker Compose network. Do not use `localhost` inside the Metabase container.
+
+Use port `8123` for the ClickHouse HTTP interface, not the native port `9002`.
+
+Click **Save** to establish the connection.
+
+Once connected, Metabase can discover the available ClickHouse tables and views.
+
+## 13. Create the Banking Analytics Dashboard
+
+After connecting ClickHouse, use Metabase to create visualizations from your banking data.
+
+Create a new dashboard:
+
+1. Open the Metabase interface.
+2. Select **+ New**.
+3. Choose **Dashboard**.
+4. Name it `banking_datastack`.
+5. Add saved questions and visualizations from your ClickHouse database.
+6. Arrange the visualizations into a dashboard layout.
+7. Save the dashboard.
+
+### Dashboard Visualizations
+
+The banking dashboard includes the following analytical views:
+
+#### 1. Transaction Overview
+
+Provides an overview of banking transaction activity.
+
+- Transaction counts by transaction type
+- Completed transaction counts
+- Failed transaction counts
+- Completed transaction values
+- Failed transaction values
+
+#### 2. Customer Overview
+
+Displays the total number of customers in the banking database.
+
+#### 3. Account Overview
+
+Displays the total number of banking accounts.
+
+#### 4. Total Account Balance
+
+A horizontal bar chart comparing total account balances by account type.
+
+#### 5. Largest Withdrawals
+
+Highlights accounts associated with the largest withdrawal transactions.
+
+#### 6. Largest Transfers
+
+Highlights accounts associated with the largest transfer transactions.
+
+#### 7. Largest Deposits
+
+Highlights accounts associated with the largest deposit transactions.
+
+#### 8. Customer Summary
+
+A detailed table containing customer and account information, including:
+
+- Customer ID
+- Customer name
+- Email
+- Account type
+- Account balance
+- Number of accounts
+- Total withdrawals
+- Total transactions
+
+The dashboard also includes interactive filters, such as account type and customer name, to support data exploration.
+
+### Final Metabase Dashboard
+
+The following screenshot shows the completed banking analytics dashboard built with Metabase.
+
+![Banking Data Stack Metabase Dashboard](https://github.com/user-attachments/assets/3f78cd8f-6a02-407c-859a-5a0d132ff8ef)
+
+The dashboard provides a consolidated view of customer activity, account balances, transaction performance, and banking operations.
+
+## 14. Verify the End-to-End Pipeline
+
+Once all services are running, verify each stage of the pipeline.
+
+| Layer | Verification |
+|---|---|
+| PostgreSQL | Source tables contain generated data |
+| Debezium | Connector is registered and capturing changes |
+| Kafka | Topics receive CDC events |
+| MinIO | Parquet files are available in the banking-data bucket |
+| Airflow | DAG successfully loads files into ClickHouse |
+| ClickHouse | Raw and transformed tables are available |
+| dbt | Models execute and tests pass |
+| Metabase | Database connection works and dashboards display data |
+
+### Example Verification Commands
+
+Check PostgreSQL:
+
+```bash
+psql postgresql://banking_user:your_password@localhost:5432/banking_db -c "SELECT COUNT(*) FROM transactions;"
+```
+
+Check MinIO:
 
 ```bash
 docker compose exec clickhouse clickhouse-client
@@ -552,22 +621,34 @@ SELECT COUNT(*) FROM banking_db.transactions;
 Run:
 
 ```bash
-dbt test
+curl "http://localhost:8123/?database=banking_db" -d "SHOW TABLES"
 ```
 
-Review the generated model tables and test results to confirm that the analytical layer is populated correctly.
+Check Airflow logs:
+
+```bash
+docker compose logs airflow-scheduler
+```
+
+Check Metabase logs:
+
+```bash
+docker compose logs metabase
+```
 
 ## Common Troubleshooting
 
 ### Docker Services Fail to Start
 
-Check Docker Desktop and inspect the container status:
+Make sure Docker Desktop is running.
+
+Check service status:
 
 ```bash
-docker compose ps
+docker compose ps -a
 ```
 
-View logs:
+View service logs:
 
 ```bash
 docker compose logs -f
@@ -575,141 +656,123 @@ docker compose logs -f
 
 ### PostgreSQL Connection Errors
 
-- Verify the PostgreSQL container is running.
-- Confirm database credentials.
-- Check that the database and schema have been initialized.
-- Use `localhost` for host-side connections and the PostgreSQL service name for container-side connections.
+- Confirm `.env` variables match the Docker Compose configuration.
+- Verify PostgreSQL is running.
+- Confirm the database and schema have been created.
 
-### Kafka or Debezium Not Capturing Changes
+### Kafka/Debezium Not Receiving Changes
 
-- Confirm Kafka and Kafka Connect are running.
-- Check the Debezium connector status.
-- Verify PostgreSQL logical replication and replication permissions.
-- Inspect Kafka Connect logs:
+- Confirm the Debezium connector is active.
+- Check Kafka Connect logs:
 
 ```bash
 docker compose logs -f connect
 ```
 
-### MinIO Objects Not Appearing
+### MinIO Files Not Appearing
 
 - Ensure the Kafka consumer is running.
-- Confirm the correct Kafka bootstrap address.
-- Verify MinIO credentials and bucket configuration.
-- Inspect the MinIO Console and consumer logs.
+- Check that the `banking-data` bucket exists.
+- Verify MinIO credentials and endpoint configuration.
 
-### Airflow DAG Not Appearing
+### Airflow DAG Not Loading
 
-Check scheduler logs:
-
-```bash
-docker compose logs -f airflow-scheduler
-```
-
-Check DAG import errors:
+- Confirm the Airflow webserver and scheduler are running.
+- Check scheduler logs:
 
 ```bash
 docker compose exec airflow-scheduler airflow dags list-import-errors
 ```
 
-Confirm that the DAG file is mounted in the expected Airflow DAG directory.
+### dbt Connection Issues
 
-### ClickHouse Loading Errors
+- Confirm ClickHouse is reachable.
+- Check the `profiles.yml` configuration.
+- Verify the database name, username, and password.
 
-Check ClickHouse logs:
+### Metabase Cannot Connect to ClickHouse
+
+- Confirm both containers are running.
+- Make sure Metabase and ClickHouse share the same Docker Compose network.
+- Use `clickhouse` as the host, not `localhost`.
+- Use HTTP port `8123`.
+- Verify the ClickHouse database name and credentials.
+
+Check Metabase logs:
 
 ```bash
-docker compose logs -f clickhouse
+docker compose logs --tail=100 metabase
 ```
 
-Verify that the ClickHouse service is reachable and that the target database and tables exist.
+## Recommended Execution Order
 
-### dbt Connection Errors
+For a complete pipeline run, follow this sequence:
 
-Run:
+1. Start infrastructure with `docker compose up -d`.
+2. Apply the PostgreSQL schema.
+3. Generate synthetic banking data.
+4. Register the Debezium connector.
+5. Start the Kafka consumer.
+6. Verify Parquet files in MinIO.
+7. Trigger the Airflow DAG.
+8. Verify ingested data in ClickHouse.
+9. Run dbt transformations and tests.
+10. Connect Metabase to ClickHouse.
+11. Create and publish banking analytics dashboards.
+
+## Future Improvements
+
+The platform can be extended with:
+
+- More advanced dbt transformations and analytical models.
+- Additional banking KPIs and dashboards.
+- Data quality checks and validation.
+- Pipeline monitoring and alerting.
+- Kafka and Airflow performance monitoring.
+- Improved data security and secrets management.
+- Incremental loading and historical data management.
+- Automated dashboard refresh and reporting.
+
+## Useful Commands
 
 ```bash
-dbt debug
-```
-
-Verify the ClickHouse host, port, credentials, database, and profile configuration.
-
-## Useful Docker Commands
-
-Start the infrastructure:
-
-```bash
+# Start all services
 docker compose up -d
-```
 
-Rebuild and start:
-
-```bash
-docker compose up -d --build
-```
-
-View running services:
-
-```bash
+# Check services
 docker compose ps
-```
 
-Follow logs:
-
-```bash
+# View logs
 docker compose logs -f
 ```
 
-Restart a service:
+# Start Metabase
+docker compose up -d metabase
 
-```bash
-docker compose restart <service-name>
+# Run synthetic data generator once
+python pipeline/data_generator/data_generator.py --once
+
+# Register Debezium connector
+python pipeline/kafka_debezium/kafka_debezium_pipeline.py
+
+# Start Kafka consumer
+python pipeline/consumer/kafka_to_minio_pipeline.py
+
+# Repair transaction Parquet values if needed
+python repair_transactions.py
+
+# Run dbt transformations
+cd transformations/banking_datastack
+dbt deps
+dbt run
+dbt test
 ```
 
-Stop containers without deleting persistent volumes:
+## Conclusion
 
-```bash
-docker compose down
-```
+This project demonstrates an end-to-end modern data engineering workflow for banking analytics.
 
-**Note:** Avoid `docker compose down -v` unless you intentionally want to delete persistent data stored in Docker volumes.
+It combines CDC-based data ingestion, event streaming, object storage, orchestration, analytical data warehousing, transformation, and business intelligence in one integrated platform.
 
-## Future Enhancements
+By combining PostgreSQL, Debezium, Kafka, MinIO, Airflow, ClickHouse, dbt, and Metabase, the project demonstrates how raw banking events can be transformed into structured analytical datasets and presented through interactive dashboards.
 
-Potential improvements to the platform include:
-
-- Implementing automated data quality checks.
-- Building additional dbt models for banking analytics.
-- Improving incremental loading and duplicate prevention.
-- Adding pipeline monitoring, alerting, and observability.
-- Implementing schema evolution and data validation.
-- Introducing CI/CD for automated testing and deployment.
-- Applying production-grade secrets management and access controls.
-- Connecting BI tools for dashboards and business intelligence.
-
-## Key Learning Outcomes
-
-This project demonstrates practical experience in:
-
-- Designing end-to-end data engineering architectures.
-- Implementing Change Data Capture with Debezium.
-- Building event-driven pipelines using Apache Kafka.
-- Processing and storing data in Parquet format.
-- Implementing S3-compatible object storage with MinIO.
-- Orchestrating data workflows using Apache Airflow.
-- Loading analytical data into ClickHouse.
-- Developing SQL transformations and tests with dbt.
-- Containerizing distributed services with Docker Compose.
-- Managing collaborative development with Git and GitHub.
-
-## Author
-
-**Oluwatosin Akinbinu**
-
-Data Engineering | Banking Data Stack
-
-GitHub: [Your GitHub Profile](<https://github.com/Seniormanx>)
-
----
-
-*This project is intended for educational and demonstration purposes. It uses synthetic banking data and should not be used to process real customer financial information without appropriate security, privacy, and regulatory controls.*
